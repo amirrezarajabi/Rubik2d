@@ -74,6 +74,124 @@ def bfs(init_state, hashed_goal_states):
             frontier_dict[new_hashed_state] = new_node
             expanded_num += 1
 
+def bi_backtrack(s_final_node, g_final_node):
+
+    action_sequence = []
+
+    current = s_final_node
+    while current.parent is not None:
+        action_sequence.insert(0, current.action)
+        current = current.parent
+
+    current = g_final_node
+    reverse_dict = {1: 7, 2: 8, 3: 9, 4: 10, 5: 11, 6: 12,
+                    7: 1, 8: 2, 9: 3, 10: 4, 11: 5, 12: 6}
+    while current.parent is not None:
+        action_sequence.append(reverse_dict[current.action])
+        current = current.parent
+
+    return action_sequence
+
+def is_found(g_frontier_dict, s_frontier_dict):
+    hashed_common_state = None
+    for i in s_frontier_dict:
+        if i in g_frontier_dict:
+            hashed_common_state = i
+            break
+
+    # if any state if found
+    if hashed_common_state is not None:
+        g_final_node = g_frontier_dict[hashed_common_state]
+        s_final_node = s_frontier_dict[hashed_common_state]
+        return s_final_node, g_final_node
+    else:
+        return None, None
+
+def one_step_bfs(frontier_dict, explored_set, depth):
+
+    explored_num = 0  # total number of nodes explored
+    expanded_num = 0  # total number of nodes expanded
+
+    while True:
+
+        if len(frontier_dict) == 0:
+            return
+        
+        hashed_state = next(iter(frontier_dict))
+        node = frontier_dict[hashed_state]
+
+        if node.cost != depth:
+            return expanded_num, explored_num
+        
+        explored_num += 1
+        
+        explored_set.add(hashed_state)
+
+        frontier_dict.pop(hashed_state)
+
+        for i in range(1, 12+1):
+
+            new_state = next_state(node.state, action=i)
+            new_hashed_state = hash_fn(new_state)
+
+            if new_hashed_state in explored_set or new_hashed_state in frontier_dict:
+                continue
+
+            new_node = Node(node, i, node.cost + 1, new_state)
+            frontier_dict[new_hashed_state] = new_node
+
+            expanded_num += 1  # one node expanded
+
+def bibfs(init_state, hashed_goal_states):
+    
+    explored_num = 0  # total number of nodes explored
+    expanded_num = 0  # total number of nodes expanded
+
+    s_explored_set = set()
+    g_explored_set = set()
+
+    s_frontier_dict = OrderedDict()
+    g_frontier_dict = OrderedDict()
+
+    initial_node = Node(None, None, 0, init_state)
+    init_hashed_state = hash_fn(initial_node.state)
+
+    s_frontier_dict[init_hashed_state] = initial_node
+
+    for g in hashed_goal_states.keys():
+        goal_state = hashed_goal_states[g]
+        goal_node = Node(None, None, 0, goal_state)
+        g_frontier_dict[g] = goal_node
+
+    s_final_node, g_final_node = is_found(g_frontier_dict, s_frontier_dict)
+    if s_final_node is not None:
+        return s_final_node, g_final_node, expanded_num, explored_num
+
+    depth = 0
+    while True:
+
+
+        if len(s_frontier_dict) == 0 or len(g_frontier_dict) == 0:
+            return None, None, expanded_num, explored_num
+        
+        expanded_num_added, explored_num_added = one_step_bfs(s_frontier_dict, s_explored_set, depth)
+        expanded_num += expanded_num_added
+        explored_num += explored_num_added
+
+        s_final_node, g_final_node = is_found(g_frontier_dict, s_frontier_dict)
+        if s_final_node is not None:
+            return s_final_node, g_final_node, expanded_num, explored_num
+
+        expanded_num_added, explored_num_added = one_step_bfs(g_frontier_dict, g_explored_set, depth)
+        expanded_num += expanded_num_added
+        explored_num += explored_num_added
+
+        s_final_node, g_final_node = is_found(g_frontier_dict, s_frontier_dict)
+        if s_final_node is not None:
+            return s_final_node, g_final_node, expanded_num, explored_num
+
+        depth += 1
+
 def dls(init_state, hashed_goal_states, limit):
 
     explored_dict = {}
@@ -173,6 +291,19 @@ def solve(init_state, method):
         print('#Expanded', expanded_num)
         print('#Explored', explored_num)
         action_sequence = backtrack(final_node)
+        print('#Actions', len(action_sequence))
+        if len(action_sequence) == 0:
+            print('Failed!')
+        else:
+            print('Success!')
+        return action_sequence
+    
+    elif method == 'BiBFS':
+        hashed_goal_states = get_hashed_goal_state()
+        s_final_node, g_final_node, expanded_num, explored_num = bibfs(init_state, hashed_goal_states)        
+        print('#Expanded', expanded_num)
+        print('#Explored', explored_num)
+        action_sequence = bi_backtrack(s_final_node, g_final_node)
         print('#Actions', len(action_sequence))
         if len(action_sequence) == 0:
             print('Failed!')
