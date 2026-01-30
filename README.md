@@ -17,3 +17,17 @@ This repository offers a range of search algorithms to solve the 2x2 Rubik's Cub
 ### Prerequisites
 
 Ensure that you have Python installed and any dependencies listed in the `requirements.txt` file.
+
+### Running a Method
+
+To solve a cube with a specific method, use the following command:
+
+```bash
+python main.py --testcase [testcase_path] --method [method_name]
+```
+
+#### Example
+
+```bash
+python main.py --testcase testcases/1.txt --method BFS
+```
