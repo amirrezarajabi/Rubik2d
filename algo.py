@@ -1,7 +1,8 @@
 from collections import OrderedDict
 import numpy as np
 from state import next_state, solved_state
-
+from location import next_location, solved_location
+import heapq
 
 class Node:
     def __init__(self, parent, action, cost, state, location=None):
@@ -257,7 +258,88 @@ def ids(init_state, hashed_goal_states, max_limit):
             return final_node, expanded_num, explored_num
     return None, expanded_num, explored_num
 
-def solve(init_state, method):
+matrix = np.zeros((8, 8), dtype=np.uint8)
+matrix[:4, :4] = 1
+matrix[:4, 4:] = 2
+matrix[4:, 4:] = 1
+matrix[4:, :4] = 2
+np.fill_diagonal(matrix, 0)
+np.fill_diagonal(np.fliplr(matrix), 3)
+np.fill_diagonal(matrix[:4, 4:], 1)
+np.fill_diagonal(matrix[4:, :4], 1)
+np.fill_diagonal(np.fliplr(matrix[:4, :4]), 2)
+np.fill_diagonal(np.fliplr(matrix[4:, 4:]), 2)
+
+def heuristic(location, is_ucs):  # heuristic function
+    
+    # h(node) = 0 -> UCS
+    if is_ucs: return 0
+
+    select_idx = location.flatten() - 1
+    output_array = np.choose(select_idx, matrix)
+    h = np.sum(output_array) / 4
+    return h
+
+def a_star(init_state, init_location, hashed_goal_states, is_ucs=False):
+
+    all_expanded_set = set()
+    
+    explored_num = 0  # total number of nodes explored
+    expanded_num = 0  # total number of nodes expanded
+
+    # creating the initial node
+    initial_node = Node(None, None, 0, init_state, init_location)
+    init_hashed_state_cost = hash_fn(initial_node.state, initial_node.cost)
+    all_expanded_set.add(init_hashed_state_cost)
+
+    # add initial node to frontier
+    frontier_pq = []
+    heapq.heappush(frontier_pq, (heuristic(initial_node.location, is_ucs=is_ucs) + initial_node.cost, id(initial_node), initial_node))
+
+    max_depth = 0
+
+    while True:
+
+        if len(frontier_pq) == 0:
+            return None, None, None
+        
+        priority, node_id, node = heapq.heappop(frontier_pq)
+
+        hashed_state = hash_fn(node.state)
+
+        explored_num += 1  # one node explored
+
+        # printing max depth
+        if node.cost > max_depth:
+            max_depth = node.cost
+
+        # checking if it is a goal state
+        if hashed_state in hashed_goal_states: 
+            return node, expanded_num, explored_num
+        
+        for i in range(1, 12+1):
+            
+            new_state = next_state(node.state, action=i)
+            new_location = next_location(node.location, action=i)
+            new_hashed_state_cost = hash_fn(new_state, node.cost+1)
+
+            if node.cost+1 > 14:
+                continue
+
+            if new_hashed_state_cost in all_expanded_set:
+                continue
+
+            all_expanded_set.add(new_hashed_state_cost)
+
+            new_node = Node(node, i, node.cost + 1, new_state, new_location)
+            heapq.heappush(frontier_pq, (heuristic(new_node.location, is_ucs=is_ucs) + new_node.cost, id(new_node), new_node))
+
+            expanded_num += 1  # one node expanded
+
+def ucs(init_state, init_location, hashed_goal_states):
+    return a_star(init_state, init_location, hashed_goal_states, is_ucs=True) 
+
+def solve(init_state, init_location, method):
     
     if method == 'BFS':
         hashed_goal_states = get_hashed_goal_state()
@@ -304,6 +386,34 @@ def solve(init_state, method):
         print('#Expanded', expanded_num)
         print('#Explored', explored_num)
         action_sequence = bi_backtrack(s_final_node, g_final_node)
+        print('#Actions', len(action_sequence))
+        if len(action_sequence) == 0:
+            print('Failed!')
+        else:
+            print('Success!')
+        return action_sequence
+    
+    elif method == 'A*':
+        hashed_goal_states = get_hashed_goal_state()
+        final_node, expanded_num, explored_num = a_star(
+            init_state, init_location, hashed_goal_states)        
+        print('#Expanded', expanded_num)
+        print('#Explored', explored_num)
+        action_sequence = backtrack(final_node)
+        print('#Actions', len(action_sequence))
+        if len(action_sequence) == 0:
+            print('Failed!')
+        else:
+            print('Success!')
+        return action_sequence
+    
+    elif method == 'UCS':
+        hashed_goal_states = get_hashed_goal_state()
+        final_node, expanded_num, explored_num = ucs(
+            init_state, init_location, hashed_goal_states)        
+        print('#Expanded', expanded_num)
+        print('#Explored', explored_num)
+        action_sequence = backtrack(final_node)
         print('#Actions', len(action_sequence))
         if len(action_sequence) == 0:
             print('Failed!')
