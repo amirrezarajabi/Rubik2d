@@ -1,0 +1,132 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{longtable}
+\geometry{margin=1in}
+
+\title{Search Algorithms for Solving the 2×2 Rubik’s Cube}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+The 2×2×2 Rubik’s Cube is a classical combinatorial puzzle that can be modeled as a state-space search problem. Each cube configuration represents a state, and each legal rotation represents a transition between states with uniform cost. This report evaluates the performance of several uninformed and informed search algorithms for solving the puzzle, including Breadth-First Search (BFS), Iterative Deepening Search (IDS), Uniform Cost Search (UCS), A* Search, and Bidirectional BFS (BiBFS).
+
+\section{Heuristic Design}
+For informed search, a heuristic function based on Manhattan distance was developed. The heuristic is defined as:
+
+\[
+h(n) = \frac{1}{4} \sum_{i=1}^{8} d_i
+\]
+
+where \( d_i \) is the Manhattan distance of cubelet \( i \) from its correct position.
+
+\subsection{Manhattan Distance for Cubelets}
+The Manhattan distance of a cubelet is defined as the minimum number of moves required to place the cubelet in its correct position, irrespective of its orientation. Since orientation is ignored, this distance provides a lower bound on the true number of moves required.
+
+Each move of the 2×2 Rubik’s Cube affects exactly four cubelets. Therefore, dividing the total Manhattan distance by four ensures that the heuristic accounts for the fact that multiple cubelets are moved simultaneously by a single action.
+
+\section{Admissibility Proof}
+A heuristic \( h(n) \) is admissible if it never overestimates the true cost \( h^*(n) \) to reach the goal state.
+
+\subsection{Non-overestimation of the True Cost}
+The heuristic satisfies admissibility for the following reasons:
+\begin{enumerate}
+    \item The Manhattan distance of each cubelet is a lower bound on the number of moves required to place that cubelet correctly.
+    \item Summing the Manhattan distances of all cubelets provides a lower bound on the total number of cubelet movements required.
+    \item Since each move affects four cubelets, dividing the sum by four yields a lower bound on the number of moves needed to solve the cube.
+\end{enumerate}
+
+Thus, the heuristic never overestimates the optimal solution cost, and:
+\[
+h(n) \leq h^*(n)
+\]
+
+\section{Consistency}
+A heuristic is consistent if:
+\[
+h(n) \leq c(n, n') + h(n')
+\]
+where \( c(n, n') \) is the cost of moving from state \( n \) to state \( n' \).
+
+In the 2×2 Rubik’s Cube:
+\begin{itemize}
+    \item Each move affects at most four cubelets.
+    \item The Manhattan distance of each affected cubelet can decrease by at most 1.
+    \item Therefore, the heuristic value can decrease by at most 1 for a single move.
+\end{itemize}
+
+Since the cost of each move is 1, the consistency condition holds:
+\[
+h(n) \leq 1 + h(n')
+\]
+
+\section{Experimental Results}
+Seven test cases of increasing difficulty were used. When the computation time became excessively large, the result is marked as \textit{Long}.
+
+\subsection{Execution Time (seconds)}
+\begin{longtable}{lccccccc}
+\toprule
+Method & T1 & T2 & T3 & T4 & T5 & T6 & T7 \\
+\midrule
+BFS   & 3.49 & 53.50 & Long & Long & Long & Long & Long \\
+IDS   & 0.26 & 20.25 & 113.15 & Long & Long & Long & Long \\
+A*    & 0.07 & 2.58 & 15.64 & 74.34 & Long & Long & Long \\
+UCS   & 2.52 & 118.27 & Long & Long & Long & Long & Long \\
+BiBFS & 0.01 & 0.14 & 0.21 & 0.85 & 3.76 & 6.54 & 20.55 \\
+\bottomrule
+\end{longtable}
+
+\subsection{Number of Actions}
+\begin{longtable}{lccccccc}
+\toprule
+Method & T1 & T2 & T3 & T4 & T5 & T6 & T7 \\
+\midrule
+BFS   & 5 & 7 & Long & Long & Long & Long & Long \\
+IDS   & 5 & 7 & 8 & Long & Long & Long & Long \\
+A*    & 5 & 7 & 8 & 9 & Long & Long & Long \\
+UCS   & 5 & 7 & Long & Long & Long & Long & Long \\
+BiBFS & 5 & 7 & 8 & 9 & 11 & 12 & 13 \\
+\bottomrule
+\end{longtable}
+
+\subsection{Expanded Nodes (×1000)}
+\begin{longtable}{lccccccc}
+\toprule
+Method & T1 & T2 & T3 & T4 & T5 & T6 & T7 \\
+\midrule
+BFS   & 202 & 2099 & Long & Long & Long & Long & Long \\
+IDS   & 10 & 677 & 2991 & Long & Long & Long & Long \\
+A*    & 2 & 82 & 443 & 1856 & Long & Long & Long \\
+UCS   & 90 & 2675 & Long & Long & Long & Long & Long \\
+BiBFS & 51 & 8 & 15 & 54 & 294 & 494 & 1300 \\
+\bottomrule
+\end{longtable}
+
+\subsection{Explored Nodes (×1000)}
+\begin{longtable}{lccccccc}
+\toprule
+Method & T1 & T2 & T3 & T4 & T5 & T6 & T7 \\
+\midrule
+BFS   & 35 & 505 & Long & Long & Long & Long & Long \\
+IDS   & 10 & 677 & 2991 & Long & Long & Long & Long \\
+A*    & 0.2 & 10 & 61 & 294 & Long & Long & Long \\
+UCS   & 14 & 621 & Long & Long & Long & Long & Long \\
+BiBFS & 0.1 & 1 & 2 & 8 & 54 & 94 & 294 \\
+\bottomrule
+\end{longtable}
+
+\section{Discussion}
+The results clearly show that uninformed search methods such as BFS and UCS do not scale well for deeper test cases due to exponential growth in time and memory requirements. IDS improves memory usage but still becomes infeasible for larger depths.
+
+A* search significantly reduces the number of expanded and explored nodes due to the admissible and consistent heuristic. However, for very difficult instances, it still requires substantial computation time.
+
+Bidirectional BFS consistently outperforms all other methods across all test cases, demonstrating superior efficiency in both time and node expansion by reducing the effective search depth.
+
+\section{Conclusion}
+This study demonstrates the effectiveness of heuristic-guided and bidirectional search techniques for solving the 2×2 Rubik’s Cube. The proposed Manhattan-distance-based heuristic is both admissible and consistent, making it suitable for A* search. Among all evaluated algorithms, Bidirectional BFS achieved the best overall performance.
+
+\end{document}
